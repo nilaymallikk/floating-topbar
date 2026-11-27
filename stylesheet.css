@@ -37,7 +37,6 @@
   border: 0;
   border-radius: 8px;
   font-weight: 500;
-  color: rgba(218, 222, 234, 0.96);
 }
 
 #panel .panel-button:hover,
@@ -76,7 +75,6 @@
 .floating-topbar-pct {
   font-size: 10pt;
   font-weight: 500;
-  color: rgba(218, 222, 234, 0.96);
   margin-left: 4px;
   margin-right: 6px;
 }
@@ -93,7 +91,6 @@
 #panel .power-status StLabel {
   font-size: 10pt;
   font-weight: 500;
-  color: rgba(218, 222, 234, 0.96);
   margin-left: 3px;
 }
 

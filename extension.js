@@ -11,8 +11,16 @@ import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as Volume from 'resource:///org/gnome/shell/ui/status/volume.js';
 
+import {buildPanelStyle} from './styleBuilder.js';
+
 export default class FloatingTopBarExtension extends Extension {
     enable() {
+        this._settings = this.getSettings();
+        this._settingsSignal = 0;
+        this._overviewSignals = [];
+        this._sessionModeSignal = 0;
+        this._inOverview = Boolean(Main.overview?.visible);
+
         this._volLabel = null;
         this._wifiLabel = null;
         this._btLabel = null;
@@ -43,6 +51,25 @@ export default class FloatingTopBarExtension extends Extension {
 
         this._retrySourceId = 0;
 
+        this._settingsSignal = this._settings.connect('changed', () => this._onSettingsChanged());
+        if (Main.overview) {
+            this._overviewSignals = [
+                Main.overview.connect('showing', () => {
+                    this._inOverview = true;
+                    this._applyPanelStyle();
+                }),
+                Main.overview.connect('hiding', () => {
+                    this._inOverview = false;
+                    this._applyPanelStyle();
+                }),
+            ];
+        }
+        if (Main.sessionMode) {
+            this._sessionModeSignal = Main.sessionMode.connect('updated', () =>
+                this._applyPanelStyle());
+        }
+
+        this._applyPanelStyle();
         this._attachQuickSettingsLabels();
     }
 
@@ -52,9 +79,57 @@ export default class FloatingTopBarExtension extends Extension {
             this._retrySourceId = 0;
         }
 
+        if (this._settings && this._settingsSignal) {
+            this._settings.disconnect(this._settingsSignal);
+            this._settingsSignal = 0;
+        }
+        if (Main.overview && this._overviewSignals.length) {
+            for (const id of this._overviewSignals)
+                Main.overview.disconnect(id);
+            this._overviewSignals = [];
+        }
+        if (Main.sessionMode && this._sessionModeSignal) {
+            Main.sessionMode.disconnect(this._sessionModeSignal);
+            this._sessionModeSignal = 0;
+        }
+        this._settings = null;
+
+        Main.panel?.set_style(null);
+
         this._detachVolume();
         this._detachWifi();
         this._detachBluetooth();
+    }
+
+    _onSettingsChanged() {
+        this._applyPanelStyle();
+        this._syncVolume();
+        this._syncWifi();
+        this._syncBluetooth();
+    }
+
+    _applyPanelStyle() {
+        if (!Main.panel)
+            return;
+        if (!this._settings || Main.sessionMode?.isLocked) {
+            Main.panel.set_style(null);
+            return;
+        }
+
+        const css = buildPanelStyle({
+            backgroundColor: this._settings.get_string('background-color'),
+            backgroundOpacity: this._settings.get_int('background-opacity'),
+            overviewOpacity: this._settings.get_int('overview-opacity'),
+            borderColor: this._settings.get_string('border-color'),
+            borderThickness: this._settings.get_int('border-thickness'),
+            textColor: this._settings.get_string('text-color'),
+            borderRadius: this._settings.get_int('border-radius'),
+            panelHeight: this._settings.get_int('panel-height'),
+            marginVertical: this._settings.get_int('margin-vertical'),
+            marginHorizontal: this._settings.get_int('margin-horizontal'),
+        }, this._inOverview);
+
+        Main.panel.set_style(css);
     }
 
     _attachQuickSettingsLabels() {
@@ -124,6 +199,10 @@ export default class FloatingTopBarExtension extends Extension {
     _syncVolume() {
         if (!this._volLabel || !this._volOutput)
             return;
+        if (this._settings && !this._settings.get_boolean('show-volume-percentage')) {
+            this._volLabel.visible = false;
+            return;
+        }
         const iconVisible = this._volOutput._indicator ? this._volOutput._indicator.visible : true;
         if (!iconVisible || !this._volStream) {
             this._volLabel.visible = false;
@@ -240,6 +319,10 @@ export default class FloatingTopBarExtension extends Extension {
     _syncWifi() {
         if (!this._wifiLabel || !this._netIndicator)
             return;
+        if (this._settings && !this._settings.get_boolean('show-wifi-percentage')) {
+            this._wifiLabel.visible = false;
+            return;
+        }
         const icon = this._netIndicator._primaryIndicator;
         const isWifiIcon = icon?.visible && (icon.icon_name ?? '').includes('wireless');
         if (!isWifiIcon || !this._wifiDevice) {
@@ -350,6 +433,10 @@ export default class FloatingTopBarExtension extends Extension {
     _syncBluetooth() {
         if (!this._btLabel || !this._btIndicator)
             return;
+        if (this._settings && !this._settings.get_boolean('show-bluetooth-percentage')) {
+            this._btLabel.visible = false;
+            return;
+        }
         const iconVisible = this._btIndicator._indicator ? this._btIndicator._indicator.visible : false;
         if (!iconVisible) {
             this._btLabel.visible = false;

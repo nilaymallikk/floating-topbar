@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist gettext-domain="floating-topbar">
+  <schema id="org.gnome.shell.extensions.floating-topbar" path="/org/gnome/shell/extensions/floating-topbar/">
+    <key name="background-color" type="s">
+      <default>'rgb(29, 31, 42)'</default>
+      <summary>Top bar background color</summary>
+      <description>Base RGB color of the floating top bar.</description>
+    </key>
+
+    <key name="background-opacity" type="i">
+      <range min="0" max="100"/>
+      <default>97</default>
+      <summary>Top bar opacity</summary>
+      <description>Opacity percentage of the floating top bar on the desktop.</description>
+    </key>
+
+    <key name="overview-opacity" type="i">
+      <range min="0" max="100"/>
+      <default>84</default>
+      <summary>Top bar opacity in Overview</summary>
+      <description>Opacity percentage of the floating top bar while Overview is open.</description>
+    </key>
+
+    <key name="border-color" type="s">
+      <default>'rgba(108, 112, 138, 0.36)'</default>
+      <summary>Top bar border color</summary>
+      <description>RGBA color used for the inset border around the floating top bar.</description>
+    </key>
+
+    <key name="border-thickness" type="i">
+      <range min="0" max="6"/>
+      <default>1</default>
+      <summary>Top bar border thickness</summary>
+      <description>Inset border thickness in pixels (0 disables the border).</description>
+    </key>
+
+    <key name="text-color" type="s">
+      <default>'rgba(218, 222, 234, 0.96)'</default>
+      <summary>Top bar text and icon color</summary>
+      <description>Foreground RGBA color for text and icons on the top bar.</description>
+    </key>
+
+    <key name="border-radius" type="i">
+      <range min="0" max="24"/>
+      <default>11</default>
+      <summary>Top bar corner radius</summary>
+      <description>Corner radius of the floating top bar in pixels.</description>
+    </key>
+
+    <key name="panel-height" type="i">
+      <range min="28" max="56"/>
+      <default>38</default>
+      <summary>Top bar height</summary>
+      <description>Locked height of the floating top bar in pixels.</description>
+    </key>
+
+    <key name="margin-vertical" type="i">
+      <range min="0" max="24"/>
+      <default>4</default>
+      <summary>Vertical floating margin</summary>
+      <description>Top and bottom margin around the floating top bar in pixels.</description>
+    </key>
+
+    <key name="margin-horizontal" type="i">
+      <range min="0" max="48"/>
+      <default>8</default>
+      <summary>Horizontal floating margin</summary>
+      <description>Left and right margin around the floating top bar in pixels.</description>
+    </key>
+
+    <key name="show-volume-percentage" type="b">
+      <default>true</default>
+      <summary>Show volume percentage</summary>
+      <description>Display inline volume percentage next to the volume icon.</description>
+    </key>
+
+    <key name="show-wifi-percentage" type="b">
+      <default>true</default>
+      <summary>Show Wi-Fi signal percentage</summary>
+      <description>Display inline Wi-Fi signal strength next to the Wi-Fi icon.</description>
+    </key>
+
+    <key name="show-bluetooth-percentage" type="b">
+      <default>true</default>
+      <summary>Show Bluetooth battery percentage</summary>
+      <description>Display inline battery percentage for connected Bluetooth peripherals.</description>
+    </key>
+  </schema>
+</schemalist>

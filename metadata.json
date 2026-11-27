@@ -5,5 +5,7 @@
   "shell-version": [
     "51"
   ],
-  "version-name": "1.0.0"
+  "settings-schema": "org.gnome.shell.extensions.floating-topbar",
+  "url": "https://github.com/nilaymallikk/floating-topbar",
+  "version-name": "1.1.0"
 }
