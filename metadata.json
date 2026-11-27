@@ -1,0 +1,9 @@
+{
+  "uuid": "floating-topbar@nilaymallik.local",
+  "name": "Floating Top Bar",
+  "description": "Floating rounded translucent top bar with compact workspace badge, search button, and inline volume/Wi-Fi percentages",
+  "shell-version": [
+    "51"
+  ],
+  "version-name": "1.0.0"
+}
