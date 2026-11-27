@@ -53,9 +53,9 @@ export default class FloatingTopBarPreferences extends ExtensionPreferences {
         window.add(page);
 
         const addColorRow = (group, {key, title, subtitle, withAlpha, fallback}) => {
-            const row = new Adw.ActionRow({title, subtitle});
+            const row = new Adw.ActionRow({title, subtitle, use_markup: false});
             const dialog = new Gtk.ColorDialog({
-                title: title.replace('&amp;', '&'),
+                title,
                 with_alpha: withAlpha,
             });
             const button = new Gtk.ColorDialogButton({
@@ -141,6 +141,7 @@ export default class FloatingTopBarPreferences extends ExtensionPreferences {
             const row = new Adw.SpinRow({
                 title,
                 subtitle,
+                use_markup: false,
                 adjustment: new Gtk.Adjustment({
                     lower,
                     upper,
@@ -200,7 +201,7 @@ export default class FloatingTopBarPreferences extends ExtensionPreferences {
         });
         addColorRow(colorsGroup, {
             key: 'text-color',
-            title: 'Text &amp; icon color',
+            title: 'Text & icon color',
             subtitle: 'Foreground color for panel labels and status icons',
             withAlpha: true,
             fallback: 'rgba(218, 222, 234, 0.96)',
@@ -228,14 +229,14 @@ export default class FloatingTopBarPreferences extends ExtensionPreferences {
         });
         addSpinRow(layoutGroup, {
             key: 'margin-vertical',
-            title: 'Top &amp; bottom margin (px)',
+            title: 'Top & bottom margin (px)',
             subtitle: 'Vertical floating gap around the bar',
             lower: 0,
             upper: 24,
         });
         addSpinRow(layoutGroup, {
             key: 'margin-horizontal',
-            title: 'Left &amp; right margin (px)',
+            title: 'Left & right margin (px)',
             subtitle: 'Horizontal floating gap from screen edges',
             lower: 0,
             upper: 48,

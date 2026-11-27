@@ -37,6 +37,14 @@
   border: 0;
   border-radius: 8px;
   font-weight: 500;
+  color: inherit;
+}
+
+#panel .panel-button:hover,
+#panel .panel-button:active,
+#panel .panel-button:checked,
+#panel .panel-button:overview {
+  color: inherit;
 }
 
 #panel .panel-button:hover,
@@ -75,6 +83,7 @@
 .floating-topbar-pct {
   font-size: 10pt;
   font-weight: 500;
+  color: inherit;
   margin-left: 4px;
   margin-right: 6px;
 }
@@ -91,6 +100,7 @@
 #panel .power-status StLabel {
   font-size: 10pt;
   font-weight: 500;
+  color: inherit;
   margin-left: 3px;
 }
 

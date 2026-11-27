@@ -53,20 +53,24 @@ export default class FloatingTopBarExtension extends Extension {
 
         this._settingsSignal = this._settings.connect('changed', () => this._onSettingsChanged());
         if (Main.overview) {
+            const setOverview = inOverview => {
+                if (this._inOverview === inOverview)
+                    return;
+                this._inOverview = inOverview;
+                this._applyPanelStyle();
+            };
             this._overviewSignals = [
-                Main.overview.connect('showing', () => {
-                    this._inOverview = true;
-                    this._applyPanelStyle();
-                }),
-                Main.overview.connect('hiding', () => {
-                    this._inOverview = false;
-                    this._applyPanelStyle();
-                }),
+                Main.overview.connect('showing', () => setOverview(true)),
+                Main.overview.connect('shown', () => setOverview(true)),
+                Main.overview.connect('hiding', () => setOverview(false)),
+                Main.overview.connect('hidden', () => setOverview(false)),
             ];
         }
         if (Main.sessionMode) {
-            this._sessionModeSignal = Main.sessionMode.connect('updated', () =>
-                this._applyPanelStyle());
+            this._sessionModeSignal = Main.sessionMode.connect('updated', () => {
+                this._inOverview = Boolean(Main.overview?.visible);
+                this._applyPanelStyle();
+            });
         }
 
         this._applyPanelStyle();
