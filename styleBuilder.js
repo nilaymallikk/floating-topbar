@@ -78,17 +78,14 @@ export function formatRgba({r, g, b, a}) {
     return `rgba(${cr}, ${cg}, ${cb}, ${ca})`;
 }
 
-export function buildPanelStyle(config = {}, inOverview = false) {
+export function buildPanelStylesheet(config = {}) {
     const merged = {...DEFAULTS, ...config};
 
     const bg = parseCssColor(merged.backgroundColor, DEFAULT_BG);
-    const opacityPct = clampInt(
-        inOverview ? merged.overviewOpacity : merged.backgroundOpacity,
-        0,
-        100,
-        inOverview ? DEFAULTS.overviewOpacity : DEFAULTS.backgroundOpacity,
-    );
-    const bgCss = formatRgba({...bg, a: opacityPct / 100});
+    const bgOpacity = clampInt(merged.backgroundOpacity, 0, 100, DEFAULTS.backgroundOpacity);
+    const overviewOpacity = clampInt(merged.overviewOpacity, 0, 100, DEFAULTS.overviewOpacity);
+    const bgCss = formatRgba({...bg, a: bgOpacity / 100});
+    const overviewBgCss = formatRgba({...bg, a: overviewOpacity / 100});
 
     const border = parseCssColor(merged.borderColor, DEFAULT_BORDER);
     const borderThickness = clampInt(merged.borderThickness, 0, 6, DEFAULTS.borderThickness);
@@ -103,16 +100,40 @@ export function buildPanelStyle(config = {}, inOverview = false) {
     const marginH = clampInt(merged.marginHorizontal, 0, 48, DEFAULTS.marginHorizontal);
 
     return [
-        `margin: ${marginV}px ${marginH}px;`,
-        'padding: 0;',
-        'border: none;',
-        `border-radius: ${radius}px;`,
-        `height: ${height}px;`,
-        `min-height: ${height}px;`,
-        `max-height: ${height}px;`,
-        `background-color: ${bgCss};`,
-        `box-shadow: ${boxShadowCss};`,
-        `color: ${textCss};`,
-        'transition-duration: 0ms;',
-    ].join(' ');
+        `#panelBox #panel.floating-topbar-styled {`,
+        `  margin: ${marginV}px ${marginH}px;`,
+        '  padding: 0;',
+        '  border: none;',
+        `  border-radius: ${radius}px;`,
+        `  height: ${height}px; min-height: ${height}px; max-height: ${height}px;`,
+        `  background-color: ${bgCss};`,
+        '  background-image: none;',
+        `  box-shadow: ${boxShadowCss};`,
+        `  color: ${textCss};`,
+        '  transition-duration: 0ms;',
+        '}',
+        '',
+        '#panelBox #panel.floating-topbar-styled:overview {',
+        `  background-color: ${overviewBgCss};`,
+        `  box-shadow: ${boxShadowCss};`,
+        '}',
+        '',
+        '#panelBox #panel.floating-topbar-styled.unlock-screen,',
+        '#panelBox #panel.floating-topbar-styled.login-screen {',
+        '  margin: 0;',
+        '  border-radius: 0;',
+        '  border: none;',
+        '  background-color: transparent;',
+        '  box-shadow: none;',
+        '}',
+        '',
+        '#panelBox #panel.floating-topbar-styled .panel-button,',
+        '#panelBox #panel.floating-topbar-styled .panel-button *,',
+        '#panelBox #panel.floating-topbar-styled .panel-button:hover,',
+        '#panelBox #panel.floating-topbar-styled .panel-button:active,',
+        '#panelBox #panel.floating-topbar-styled .panel-button:checked,',
+        '#panelBox #panel.floating-topbar-styled .panel-button:overview {',
+        `  color: ${textCss};`,
+        '}',
+    ].join('\n');
 }

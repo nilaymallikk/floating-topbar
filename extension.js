@@ -11,15 +11,17 @@ import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as Volume from 'resource:///org/gnome/shell/ui/status/volume.js';
 
-import {buildPanelStyle} from './styleBuilder.js';
+import {buildPanelStylesheet} from './styleBuilder.js';
 
 export default class FloatingTopBarExtension extends Extension {
     enable() {
         this._settings = this.getSettings();
         this._settingsSignal = 0;
-        this._overviewSignals = [];
-        this._sessionModeSignal = 0;
-        this._inOverview = Boolean(Main.overview?.visible);
+        this._themeContext = null;
+        this._themeChangedSignal = 0;
+        this._loadedTheme = null;
+        this._customStyleFile = null;
+        this._lastStyleCss = null;
 
         this._volLabel = null;
         this._wifiLabel = null;
@@ -52,28 +54,15 @@ export default class FloatingTopBarExtension extends Extension {
         this._retrySourceId = 0;
 
         this._settingsSignal = this._settings.connect('changed', () => this._onSettingsChanged());
-        if (Main.overview) {
-            const setOverview = inOverview => {
-                if (this._inOverview === inOverview)
-                    return;
-                this._inOverview = inOverview;
-                this._applyPanelStyle();
-            };
-            this._overviewSignals = [
-                Main.overview.connect('showing', () => setOverview(true)),
-                Main.overview.connect('shown', () => setOverview(true)),
-                Main.overview.connect('hiding', () => setOverview(false)),
-                Main.overview.connect('hidden', () => setOverview(false)),
-            ];
-        }
-        if (Main.sessionMode) {
-            this._sessionModeSignal = Main.sessionMode.connect('updated', () => {
-                this._inOverview = Boolean(Main.overview?.visible);
-                this._applyPanelStyle();
-            });
-        }
+        this._themeContext = St.ThemeContext.get_for_stage(global.stage);
+        this._themeChangedSignal = this._themeContext.connect('changed', () => {
+            const theme = this._themeContext?.get_theme();
+            if (theme && theme !== this._loadedTheme)
+                this._applyPanelStyle(true);
+        });
 
-        this._applyPanelStyle();
+        Main.panel?.add_style_class_name('floating-topbar-styled');
+        this._applyPanelStyle(true);
         this._attachQuickSettingsLabels();
     }
 
@@ -87,18 +76,15 @@ export default class FloatingTopBarExtension extends Extension {
             this._settings.disconnect(this._settingsSignal);
             this._settingsSignal = 0;
         }
-        if (Main.overview && this._overviewSignals.length) {
-            for (const id of this._overviewSignals)
-                Main.overview.disconnect(id);
-            this._overviewSignals = [];
-        }
-        if (Main.sessionMode && this._sessionModeSignal) {
-            Main.sessionMode.disconnect(this._sessionModeSignal);
-            this._sessionModeSignal = 0;
+        if (this._themeContext && this._themeChangedSignal) {
+            this._themeContext.disconnect(this._themeChangedSignal);
+            this._themeChangedSignal = 0;
         }
         this._settings = null;
 
-        Main.panel?.set_style(null);
+        Main.panel?.remove_style_class_name('floating-topbar-styled');
+        this._unloadPanelStylesheet();
+        this._themeContext = null;
 
         this._detachVolume();
         this._detachWifi();
@@ -106,21 +92,31 @@ export default class FloatingTopBarExtension extends Extension {
     }
 
     _onSettingsChanged() {
-        this._applyPanelStyle();
+        this._applyPanelStyle(false);
         this._syncVolume();
         this._syncWifi();
         this._syncBluetooth();
     }
 
-    _applyPanelStyle() {
-        if (!Main.panel)
-            return;
-        if (!this._settings || Main.sessionMode?.isLocked) {
-            Main.panel.set_style(null);
-            return;
+    _getCustomStyleFile() {
+        if (!this._customStyleFile) {
+            const runtimeDir = GLib.get_user_runtime_dir() || GLib.get_tmp_dir();
+            GLib.mkdir_with_parents(runtimeDir, 0o700);
+            const path = GLib.build_filenamev([runtimeDir, 'floating-topbar-custom.css']);
+            this._customStyleFile = Gio.File.new_for_path(path);
         }
+        return this._customStyleFile;
+    }
 
-        const css = buildPanelStyle({
+    _applyPanelStyle(force = false) {
+        if (!this._settings || !this._themeContext)
+            return;
+
+        const theme = this._themeContext.get_theme();
+        if (!theme)
+            return;
+
+        const css = buildPanelStylesheet({
             backgroundColor: this._settings.get_string('background-color'),
             backgroundOpacity: this._settings.get_int('background-opacity'),
             overviewOpacity: this._settings.get_int('overview-opacity'),
@@ -131,9 +127,55 @@ export default class FloatingTopBarExtension extends Extension {
             panelHeight: this._settings.get_int('panel-height'),
             marginVertical: this._settings.get_int('margin-vertical'),
             marginHorizontal: this._settings.get_int('margin-horizontal'),
-        }, this._inOverview);
+        });
 
-        Main.panel.set_style(css);
+        if (!force && css === this._lastStyleCss && theme === this._loadedTheme)
+            return;
+
+        const file = this._getCustomStyleFile();
+        if (this._loadedTheme) {
+            try {
+                this._loadedTheme.unload_stylesheet(file);
+            } catch {
+                // Previous theme may already be disposed or not have this sheet loaded
+            }
+        }
+
+        // Write dynamic stylesheet to tmpfs runtime dir so other extensions
+        // clearing Main.panel.style (e.g. dash2dock-lite on window close) cannot wipe it.
+        file.replace_contents(
+            css,
+            null,
+            false,
+            Gio.FileCreateFlags.REPLACE_DESTINATION,
+            null,
+        );
+
+        this._loadedTheme = theme;
+        this._lastStyleCss = css;
+        theme.load_stylesheet(file);
+    }
+
+    _unloadPanelStylesheet() {
+        const file = this._customStyleFile;
+        const theme = this._loadedTheme ?? this._themeContext?.get_theme();
+        if (theme && file) {
+            try {
+                theme.unload_stylesheet(file);
+            } catch {
+                // Ignore if already unloaded
+            }
+        }
+        if (file) {
+            try {
+                file.delete(null);
+            } catch {
+                // Ignore if already deleted
+            }
+        }
+        this._loadedTheme = null;
+        this._lastStyleCss = null;
+        this._customStyleFile = null;
     }
 
     _attachQuickSettingsLabels() {

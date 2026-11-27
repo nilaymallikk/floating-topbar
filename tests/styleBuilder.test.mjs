@@ -5,11 +5,12 @@ import {
     DEFAULTS,
     parseCssColor,
     formatRgba,
-    buildPanelStyle,
+    buildPanelStylesheet,
 } from '../styleBuilder.js';
 
-test('default config matches v1.0.0 panel values', () => {
-    const css = buildPanelStyle(DEFAULTS, false);
+test('default stylesheet matches v1.0.0 panel values and uses high-specificity selector', () => {
+    const css = buildPanelStylesheet(DEFAULTS);
+    assert.match(css, /#panelBox\s+#panel\.floating-topbar-styled\s*\{/);
     assert.match(css, /margin:\s*4px 8px;/);
     assert.match(css, /border:\s*none;/);
     assert.match(css, /border-radius:\s*11px;/);
@@ -18,54 +19,63 @@ test('default config matches v1.0.0 panel values', () => {
     assert.match(css, /max-height:\s*38px;/);
     assert.match(css, /background-color:\s*rgba\(29, 31, 42, 0\.97\);/);
     assert.match(css, /box-shadow:\s*inset 0 0 0 1px rgba\(108, 112, 138, 0\.36\);/);
+    assert.match(css, /#panelBox\s+#panel\.floating-topbar-styled\s+\.panel-button\s+\*/);
     assert.match(css, /color:\s*rgba\(218, 222, 234, 0\.96\);/);
 });
 
-test('inOverview=true uses overviewOpacity', () => {
-    const css = buildPanelStyle(DEFAULTS, true);
-    assert.match(css, /background-color:\s*rgba\(29, 31, 42, 0\.84\);/);
-    assert.match(css, /box-shadow:\s*inset 0 0 0 1px rgba\(108, 112, 138, 0\.36\);/);
+test('stylesheet includes :overview rule using overviewOpacity and unlock-screen reset', () => {
+    const css = buildPanelStylesheet(DEFAULTS);
+    assert.match(
+        css,
+        /#panelBox\s+#panel\.floating-topbar-styled:overview\s*\{[^}]*background-color:\s*rgba\(29, 31, 42, 0\.84\);/,
+    );
+    assert.match(
+        css,
+        /#panelBox\s+#panel\.floating-topbar-styled\.unlock-screen[\s\S]*?background-color:\s*transparent;/,
+    );
 });
 
 test('borderThickness=0 emits box-shadow: none', () => {
-    const css = buildPanelStyle({...DEFAULTS, borderThickness: 0}, false);
+    const css = buildPanelStylesheet({...DEFAULTS, borderThickness: 0});
     assert.match(css, /box-shadow:\s*none;/);
     assert.doesNotMatch(css, /inset 0 0 0 0px/);
 });
 
 test('borderThickness=4 emits inset 4px shadow with border: none', () => {
-    const css = buildPanelStyle({
+    const css = buildPanelStylesheet({
         ...DEFAULTS,
         borderThickness: 4,
         borderColor: 'rgba(153, 193, 200, 0.8)',
-    }, false);
+    });
     assert.match(css, /border:\s*none;/);
     assert.match(css, /box-shadow:\s*inset 0 0 0 4px rgba\(153, 193, 200, 0\.8\);/);
 });
 
 test('clamps out-of-range numeric values to schema bounds', () => {
-    const low = buildPanelStyle({
+    const low = buildPanelStylesheet({
         backgroundOpacity: -20,
+        overviewOpacity: -10,
         borderThickness: -5,
         borderRadius: -3,
         panelHeight: 10,
         marginVertical: -2,
         marginHorizontal: -4,
-    }, false);
+    });
     assert.match(low, /background-color:\s*rgba\(29, 31, 42, 0\);/);
     assert.match(low, /box-shadow:\s*none;/);
     assert.match(low, /border-radius:\s*0px;/);
     assert.match(low, /height:\s*28px;\s*min-height:\s*28px;\s*max-height:\s*28px;/);
     assert.match(low, /margin:\s*0px 0px;/);
 
-    const high = buildPanelStyle({
+    const high = buildPanelStylesheet({
         backgroundOpacity: 250,
+        overviewOpacity: 250,
         borderThickness: 99,
         borderRadius: 99,
         panelHeight: 120,
         marginVertical: 99,
         marginHorizontal: 99,
-    }, false);
+    });
     assert.match(high, /background-color:\s*rgba\(29, 31, 42, 1\);/);
     assert.match(high, /box-shadow:\s*inset 0 0 0 6px /);
     assert.match(high, /border-radius:\s*24px;/);
@@ -84,12 +94,12 @@ test('parses hex (#rgb, #rrggbb, #rrggbbaa) and rgb/rgba strings', () => {
 });
 
 test('rejects corrupt or CSS-injection color strings and falls back safely', () => {
-    const css = buildPanelStyle({
+    const css = buildPanelStylesheet({
         backgroundColor: 'red; position: fixed',
         borderColor: 'rgb(999, 0, 0); } #x {',
         textColor: '',
-    }, false);
-    assert.doesNotMatch(css, /position|fixed|#x|\}/);
+    });
+    assert.doesNotMatch(css, /position|fixed|#x/);
     assert.match(css, /background-color:\s*rgba\(29, 31, 42, 0\.97\);/);
     assert.match(css, /box-shadow:\s*inset 0 0 0 1px rgba\(108, 112, 138, 0\.36\);/);
     assert.match(css, /color:\s*rgba\(218, 222, 234, 0\.96\);/);

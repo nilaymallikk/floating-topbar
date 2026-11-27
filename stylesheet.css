@@ -54,7 +54,8 @@
 }
 
 /* Space Bar single current-workspace icy-cyan badge (#99c1c8) on the far left */
-#panel .panel-button.space-bar.workspace-label {
+#panel .panel-button.space-bar.workspace-label,
+#panelBox #panel.floating-topbar-styled .panel-button.space-bar.workspace-label {
   margin: 6px 4px 6px 8px;
   padding: 0;
   -natural-hpadding: 0px;
@@ -65,12 +66,15 @@
   box-shadow: none;
 }
 
-#panel .panel-button.space-bar.workspace-label:hover {
+#panel .panel-button.space-bar.workspace-label:hover,
+#panelBox #panel.floating-topbar-styled .panel-button.space-bar.workspace-label:hover {
   background-color: #add0d6;
+  color: #161820;
   box-shadow: none;
 }
 
-#panel .panel-button.space-bar.workspace-label StLabel {
+#panel .panel-button.space-bar.workspace-label StLabel,
+#panelBox #panel.floating-topbar-styled .panel-button.space-bar.workspace-label StLabel {
   min-width: 24px;
   padding: 0 6px;
   text-align: center;

@@ -6,15 +6,25 @@ import {fileURLToPath} from 'node:url';
 
 const ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
 
-test('stylesheet explicitly inherits #panel text color on .panel-button states', () => {
+test('extension.js applies panel customization via St.Theme stylesheet (immune to Main.panel.style wipes)', () => {
+    const src = readFileSync(join(ROOT, 'extension.js'), 'utf8');
+    assert.match(src, /load_stylesheet/);
+    assert.match(src, /unload_stylesheet/);
+    assert.match(src, /add_style_class_name\(\s*'floating-topbar-styled'\s*\)/);
+    assert.match(src, /remove_style_class_name\(\s*'floating-topbar-styled'\s*\)/);
+    assert.doesNotMatch(
+        src,
+        /Main\.panel\.set_style\(/,
+        'Inline Main.panel.set_style gets wiped by extensions like dash2dock-lite when dialogs/windows close',
+    );
+});
+
+test('stylesheet preserves Space Bar workspace badge text color above panel text override', () => {
     const css = readFileSync(join(ROOT, 'stylesheet.css'), 'utf8');
     assert.match(
         css,
-        /#panel\s+\.panel-button[\s\S]*?color:\s*inherit;/,
-        'Expected #panel .panel-button to set color: inherit so GNOME base theme color does not override #panel inline color',
+        /#panelBox\s+#panel\.floating-topbar-styled\s+\.panel-button\.space-bar\.workspace-label[\s\S]*?color:\s*#161820;/,
     );
-    assert.match(css, /#panel\s+\.panel-button:overview/);
-    assert.match(css, /#panel\s+\.panel-button\.space-bar\.workspace-label[\s\S]*?color:\s*#161820;/);
 });
 
 test('prefs.js Adw.PreferencesGroup titles escape ampersands for Pango markup', () => {
@@ -28,20 +38,4 @@ test('prefs.js Adw.PreferencesGroup titles escape ampersands for Pango markup', 
             `Adw.PreferencesGroup parses Pango markup; escape & as &amp; in:\n${block}`,
         );
     }
-});
-
-test('extension.js tracks shown/hidden overview signals and syncs overview state on sessionMode update', () => {
-    const src = readFileSync(join(ROOT, 'extension.js'), 'utf8');
-    for (const sig of ['showing', 'shown', 'hiding', 'hidden']) {
-        assert.match(
-            src,
-            new RegExp(`Main\\.overview\\.connect\\(\\s*'${sig}'`),
-            `Expected Main.overview.connect('${sig}', ...) to handle cancelled touchpad gestures`,
-        );
-    }
-    assert.match(
-        src,
-        /Main\.sessionMode\.connect\(\s*'updated'[\s\S]*?_inOverview\s*=\s*Boolean\(Main\.overview\?\.visible\)/,
-        'Expected sessionMode updated handler to resync _inOverview',
-    );
 });
